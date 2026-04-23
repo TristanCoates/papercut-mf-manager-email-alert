@@ -3,7 +3,7 @@ function printJobHook(inputs, actions) {
   // --- Config ---
   // Threshold is strictly greater-than. 100 pages = no alert, 101 = alert.
   var PAGE_THRESHOLD = 100;
-  var FALLBACK_EMAIL = "tristan.coates+fallback@papercut.com";
+  var FALLBACK_EMAIL = "alerts@example.com";
   // --------------
   
   // printJobHook fires before job analysis completes. Bail out early on the
