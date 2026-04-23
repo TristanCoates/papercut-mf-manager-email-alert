@@ -71,6 +71,53 @@ Sends an email to a user's line manager (per Active Directory) when they submit 
   ```
 - If you see a fallback entry instead, the user has no config key written — re-run the PS script and check the log for `SKIP`/`FAIL` lines.
 
+## Verification commands
+
+### List AD users with their manager and manager's email
+
+```powershell
+Get-ADUser -Filter { Enabled -eq $true } -Properties manager, mail |
+    Where-Object { $_.manager } |
+    ForEach-Object {
+        $mgr = Get-ADUser -Identity $_.manager -Properties mail
+        [PSCustomObject]@{
+            User         = $_.sAMAccountName
+            UserEmail    = $_.mail
+            Manager      = $mgr.sAMAccountName
+            ManagerEmail = $mgr.mail
+        }
+    } |
+    Sort-Object User |
+    Format-Table -AutoSize
+```
+
+### Diff AD manager email vs PaperCut config (confirm sync is current)
+
+Any `InSync = False` row = AD manager changed after the last sync run, or the write failed.
+
+```powershell
+$ServerCommandPath = "C:\Program Files\PaperCut MF\server\bin\win\server-command.exe"
+
+Get-ADUser -Filter { Enabled -eq $true } -Properties manager, mail |
+    Where-Object { $_.manager } |
+    ForEach-Object {
+        $mgr = Get-ADUser -Identity $_.manager -Properties mail
+        $configKey = "script.user-defined.user-custom-property.manager-email.$($_.sAMAccountName)"
+        $pcValue = & $ServerCommandPath get-config $configKey 2>$null
+        [PSCustomObject]@{
+            User            = $_.sAMAccountName
+            AD_Manager      = $mgr.sAMAccountName
+            AD_ManagerEmail = $mgr.mail
+            PC_ManagerEmail = $pcValue
+            InSync          = ($mgr.mail -eq $pcValue)
+        }
+    } |
+    Sort-Object User |
+    Format-Table -AutoSize
+```
+
+> **Note:** this uses `get-config` against the visible config key created by `manager-email-sync.ps1`. The hidden-variant path (`get-user-property <user> print-script-property.manager-email`) will NOT return anything for this deployment.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
