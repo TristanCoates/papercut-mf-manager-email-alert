@@ -1,0 +1,63 @@
+function printJobHook(inputs, actions) {
+  
+  // --- Config ---
+  // Threshold is strictly greater-than. 100 pages = no alert, 101 = alert.
+  var PAGE_THRESHOLD = 100;
+  var FALLBACK_EMAIL = "tristan.coates+fallback@papercut.com";
+  // --------------
+  
+  // printJobHook fires before job analysis completes. Bail out early on the
+  // pre-analysis pass so we don't throw on inputs.job.totalPages.
+  if (!inputs.job.isAnalysisComplete) {
+    return;
+  }
+  
+  var pages = inputs.job.totalPages;
+  
+  // Under or equal to the threshold - log and exit.
+  if (pages <= PAGE_THRESHOLD) {
+    actions.log.info(
+      "Under threshold: " + inputs.user.username +
+      " printed " + pages + " pages (threshold " + PAGE_THRESHOLD + "). No alert sent."
+    );
+    return;
+  }
+  
+  // Over the threshold - resolve the manager's email.
+  // Pairs with sync-manager-email.ps1 (hidden variant), which writes to:
+  //   script.user-defined.print-script-property.manager-email.<username>
+  var managerEmail = inputs.utils.getProperty(
+    "user-custom-property.manager-email." + inputs.user.username
+  );
+  
+  // Fallback: covers users whose AD manager has no mail attribute,
+  // or who were added to AD after the last sync run.
+  if (managerEmail == null || managerEmail.trim() === "") {
+    actions.log.info(
+      "No manager-email set for user " + inputs.user.username +
+      " - falling back to " + FALLBACK_EMAIL
+    );
+    managerEmail = FALLBACK_EMAIL;
+  }
+  
+  var subject = "Print limit exceeded: " + inputs.user.fullName +
+      " (" + inputs.user.username + ")";
+  
+  var body =
+      "Hi,\n\n" +
+      inputs.user.fullName + " (" + inputs.user.username + ") has exceeded " +
+      "the " + PAGE_THRESHOLD + "-page threshold on a single print job.\n\n" +
+      "Job details:\n" +
+      "  Document: " + inputs.job.documentName + "\n" +
+      "  Pages:    " + pages + "\n" +
+      "  Printer:  " + inputs.job.printerName + "\n" +
+      "  Time:     " + new Date() + "\n\n" +
+      "This is an automated message from PaperCut MF.\n";
+  
+  actions.utils.sendEmail(managerEmail, subject, body);
+  
+  actions.log.info(
+    "Sent over-threshold alert for " + inputs.user.username +
+    " (" + pages + " pages) to manager " + managerEmail
+  );
+}​
