@@ -1,4 +1,4 @@
-# PaperCut MF — Manager Email Alert on Over-Threshold Print Jobs
+# PaperCut MF - Manager Email Alert on Over-Threshold Print Jobs
 
 Sends an email to a user's line manager (per Active Directory) when they submit a print job that exceeds a configurable page threshold.
 
@@ -41,15 +41,15 @@ Sends an email to a user's line manager (per Active Directory) when they submit 
 **Install**
 1. Copy `manager-email-sync.ps1` to `C:\PaperCutScripts\` (or similar).
 2. Edit the `--- Config ---` block at the top if needed:
-   - `$ServerCommandPath` — path to `server-command.exe`.
-   - `$SearchBase` — defaults to the current domain DN; override to scope to an OU.
-   - `$LogDir` / `$LogRetentionDays` — logging options.
+   - `$ServerCommandPath` - path to `server-command.exe`.
+   - `$SearchBase` - defaults to the current domain DN; override to scope to an OU.
+   - `$LogDir` / `$LogRetentionDays` - logging options.
 3. Test-run from an elevated PowerShell:
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File C:\PaperCutScripts\manager-email-sync.ps1
    ```
 4. Verify keys appear in PaperCut admin UI → **Options → Actions → Config editor (Advanced)** → search `script.user-defined.user-custom-property.manager-email`.
-5. Schedule via **Task Scheduler** — e.g. daily at 02:00.
+5. Schedule via **Task Scheduler** - e.g. daily at 02:00.
 
 ### 2. Print script
 
@@ -57,8 +57,8 @@ Sends an email to a user's line manager (per Active Directory) when they submit 
 2. Enable scripting.
 3. Paste the contents of `papercut MF print script.txt` into the editor.
 4. Edit the `--- Config ---` block at the top if needed:
-   - `PAGE_THRESHOLD` — strictly greater-than; default `100` (101+ pages triggers alert).
-   - `FALLBACK_EMAIL` — used when no manager email is known for the user.
+   - `PAGE_THRESHOLD` - strictly greater-than; default `100` (101+ pages triggers alert).
+   - `FALLBACK_EMAIL` - used when no manager email is known for the user.
 5. Click **Apply**.
 
 ### 3. Verify
@@ -69,7 +69,7 @@ Sends an email to a user's line manager (per Active Directory) when they submit 
   ```
   Sent over-threshold alert for <user> (<pages> pages) to manager <email>
   ```
-- If you see a fallback entry instead, the user has no config key written — re-run the PS script and check the log for `SKIP`/`FAIL` lines.
+- If you see a fallback entry instead, the user has no config key written - re-run the PS script and check the log for `SKIP`/`FAIL` lines.
 
 ## Verification commands
 
@@ -122,14 +122,14 @@ Get-ADUser -Filter { Enabled -eq $true } -Properties manager, mail |
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `No manager-email set for user X — falling back to …` | No config key for user. Either user wasn't in scope of the PS run, their AD `manager` is empty, or the manager has no `mail` attribute. Check the PS log. |
-| Script throws `Cannot find function getConfigProperty …` | Print script is using the wrong API. Correct call is `inputs.utils.getProperty(...)` — not `actions.utils.getConfigProperty`. |
+| `No manager-email set for user X - falling back to …` | No config key for user. Either user wasn't in scope of the PS run, their AD `manager` is empty, or the manager has no `mail` attribute. Check the PS log. |
+| Script throws `Cannot find function getConfigProperty …` | Print script is using the wrong API. Correct call is `inputs.utils.getProperty(...)` - not `actions.utils.getConfigProperty`. |
 | `server-command not found` in PS log | `$ServerCommandPath` wrong, or PaperCut not installed on this host. |
 | Keys never appear in Config editor | PS is running on a host without `server-command` or under an account that lacks permission. Must run on the app server. |
 | PaperCut still runs old script behaviour after edits | Script is stored server-side. Paste the updated file into the Scripting editor and click **Apply**. Editing the local file does not push changes. |
 
 ## Notes
 
-- The PS script writes one config key per user. Large user bases will make the Config editor busy — search rather than browse.
-- Config key values have a 1000-character limit — plenty for an email address.
+- The PS script writes one config key per user. Large user bases will make the Config editor busy - search rather than browse.
+- Config key values have a 1000-character limit - plenty for an email address.
 - The threshold check uses `<=` so `PAGE_THRESHOLD = 100` means 100 pages does NOT alert, 101 does.
